@@ -4,32 +4,17 @@ import { View, Text, FlatList,StyleSheet, TouchableOpacity, RefreshControl } fro
 import { ProductsContext } from '../context/ProductsContext';
 import { StackScreenProps } from '@react-navigation/stack';
 import { ProductsStackParams } from '../navigator/ProductsNavigator';
-
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface Props extends StackScreenProps<ProductsStackParams, 'ProductsScreen'>{};
 
 export const ProductsScreen = ({ navigation  }:  Props) => {
 
-  const { products, loadProducts } = useContext( ProductsContext )
+  const { products, loadProducts, deleteProduct } = useContext( ProductsContext )
   const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={{marginRight:10}}
-          onPress={ () => navigation.navigate('ProductScreen',{})}
-        >
-          <Text>Agregar</Text>
-        </TouchableOpacity>   
-      )
-    })
-  }, [])
-  
 
-  //TODO: Pull to refresh
+  //Pull to refresh
   const loadProductsFromBackend = async () => {
     setRefreshing(true);
     await loadProducts();
@@ -37,8 +22,13 @@ export const ProductsScreen = ({ navigation  }:  Props) => {
 
   }
 
+  const deleteProductWithId = async (productId: string) => {
+    await deleteProduct(productId);
+    await loadProducts()
+  } 
+
   return (
-    <View style={{flex:1, marginHorizontal:10}} >
+    <View style={{flex:1, marginHorizontal:10,}} >
         
         <FlatList
           data={products}
@@ -46,20 +36,32 @@ export const ProductsScreen = ({ navigation  }:  Props) => {
 
           renderItem={ ({item}) =>  ( 
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={ 
-                () => navigation.navigate('ProductScreen', {
-                  id: item._id,
-                  name: item.nombre
-                })}
+            <View style={{ flexDirection: 'row', justifyContent:'space-between' }} >
+              <TouchableOpacity
+                style={{flex:1}}
+                activeOpacity={0.8}
+                onPress={ 
+                  () => navigation.navigate('ProductScreen', {
+                    id: item._id,
+                    name: item.nombre
+                  })}
+  
+              > 
+                <Text style={styles.productName} > {item.nombre} </Text>  
+              </TouchableOpacity> 
 
-            > 
-              <Text style={styles.productName} > {item.nombre} </Text>  
-            </TouchableOpacity> 
-
-            
-            )}
+              <TouchableOpacity
+                onPress={ () => deleteProductWithId(item._id) }
+              >
+                <Icon 
+                  size={23}
+                  name='clear'
+                  color='#38589f'
+                />
+              </TouchableOpacity>
+            </View>    
+          
+          )}
           
           ItemSeparatorComponent={ () => (
             <View style={styles.itemSeparator} />
@@ -78,7 +80,8 @@ export const ProductsScreen = ({ navigation  }:  Props) => {
 
 const styles = StyleSheet.create({
   productName:{
-    fontSize:20,
+    fontSize:17,
+    color:'#102549'
   },
   itemSeparator:{
     borderBottomWidth: 2,

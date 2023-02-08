@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Navigator } from './src/navigator/Navigator';
 import { AuthProvider } from './src/context/AuthContext';
 import { ProductsProvider } from './src/context/ProductsContext';
+// import { DrawerMenu } from './src/navigator/DrawerMenu';
 
 
 const AppState = ( {children} : { children: JSX.Element | JSX.Element[] } ) => {
@@ -21,6 +22,8 @@ export const App = () => {
     <NavigationContainer>
       <AppState>
         <Navigator />
+        {/* <SideMenu /> */}
+        
       </AppState>
     </NavigationContainer>
   )

@@ -1,14 +1,17 @@
 import React, { useState } from 'react'
 import { useEffect, useContext } from 'react';
 import { StackScreenProps } from '@react-navigation/stack';
-import {TextInput, View, Button, Text, StyleSheet, ScrollView, Image} from 'react-native';
+import { TextInput, View, Button, Text, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
-
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import { ProductsStackParams } from '../navigator/ProductsNavigator';
 import { useCategories } from '../hooks/useCategories';
 import { useForm } from '../hooks/useForms';
 import { ProductsContext } from '../context/ProductsContext';
+import { FadeInImage } from '../components/FadeInImage';
+import {TouchableOpacity} from 'react-native';
 
 interface Props extends StackScreenProps<ProductsStackParams, 'ProductScreen'>{};
 
@@ -16,9 +19,13 @@ interface Props extends StackScreenProps<ProductsStackParams, 'ProductScreen'>{}
 export const ProductScreen = ( { route, navigation }: Props ) => {
   
   const {id='', name=''} = route.params;
+  
+  const [tempUri, setTempUri] = useState <string> ()
+  
   const {categories} = useCategories();
 
-  const { loadProductById, addProduct,  updateProduct } =  useContext( ProductsContext )
+
+  const { loadProductById, addProduct,  updateProduct, uploadImage, loading } =  useContext( ProductsContext )
 
 
   const {_id, categoriaId, nombre, img, form, onChange, setFormValue} = useForm({
@@ -43,7 +50,7 @@ export const ProductScreen = ( { route, navigation }: Props ) => {
   const loadProduct = async () => {
     if(id.length === 0) return; 
     const product = await loadProductById( id )
-    console.log(product)
+    // console.log(product)
     setFormValue({
       _id: id,
       categoriaId: product.categoria._id,
@@ -65,6 +72,26 @@ export const ProductScreen = ( { route, navigation }: Props ) => {
       onChange( (await newProduct)._id, '_id' )
     }
   }
+
+  const takePhoto = () => {
+
+    // console.log('Open camera');
+
+    launchCamera( { 
+      mediaType: 'photo',
+      quality: 0.5,
+      // cameraType: 'back',
+     }, (resp) => {
+
+      if( resp.didCancel ) return;
+
+      if(!resp.assets?.[0].uri) return;
+      setTempUri(resp.assets?.[0].uri)
+      console.log(resp)
+      uploadImage( resp, id )
+
+    })
+  }
   
   
   return (
@@ -83,7 +110,10 @@ export const ProductScreen = ( { route, navigation }: Props ) => {
         <Text style={styles.label}>Categoría: </Text>
         <Picker
           selectedValue={categoriaId}
-          onValueChange={(itemValue ) => onChange( itemValue, 'categoriaId' )}>
+          onValueChange={(itemValue ) => onChange( itemValue, 'categoriaId' )}
+          style={{ color:'black' }}
+          
+          >
           
           {
             categories.map( (cat) => (
@@ -95,48 +125,81 @@ export const ProductScreen = ( { route, navigation }: Props ) => {
         
         </Picker>
 
-        <Button
-          title="Guardar"
-          onPress={ saveOrUpdate }
-          color="#5056D6"
-        />
+        <View style={{flexDirection:'row', justifyContent:'center', marginTop: 10}}>
+
+          
+          {/* LOADING BUTTON */}
+          <TouchableOpacity
+            onPress={ saveOrUpdate }
+            activeOpacity={ 0.8 }
+            // style={styles.saveBtn}
+          >
+            <View style={styles.saveBtn}>
+              { !loading &&
+                <Icon 
+                  name='save'
+                  size={35}
+                  color='white'
+                /> 
+              }
+              { loading &&
+                <ActivityIndicator 
+                  color='white'
+                  size={20}
+                />
+              }
+              <Text style={{
+                color:'white',
+                fontSize:20
+              }} >Guardar</Text>
+
+            </View>
+          </TouchableOpacity>
+
+        </View>
+
+
 
         {
           ( _id.length > 0  ) &&
             <View style={{flexDirection:'row', justifyContent:'center', marginTop: 10}} >
               <Button 
-              title="Cámara"
-              onPress={() => {}}
-              color="#5056D6"
+                title="Cámara"
+                onPress={takePhoto}
+                color="#5056D6"
               />
 
               <View style={{width:10}} />
 
               <Button 
-              title="Galería"
-              onPress={() => {}}
-              color="#5056D6"
+                title="Galería"
+                onPress={() => {}}
+                color="#5056D6"
               />
             </View>
         }
 
 
         {
-          (img.length > 0) &&(
+          (img.length > 0 && !tempUri) &&(
 
-            <Image 
-              source={{ uri: img  }}
-              style = {{
-                marginTop:20,
-                width: '100%',
-                height: 300
-              }}
+            <FadeInImage 
+              uri={img}
+              style = { styles.image }
             />
           )
         }
 
         {/* TODO: IMAGEN TEMPORAL */}
 
+        {
+          (tempUri) &&(
+            <FadeInImage
+              uri={tempUri}
+              style={styles.image}
+            />
+          )
+        }
       
       </ScrollView>
     </View>
@@ -152,7 +215,8 @@ const styles= StyleSheet.create({
   },
 
   label:{
-    fontSize:18
+    fontSize:18,
+    color: 'black',
   },
 
   textInput:{
@@ -165,5 +229,26 @@ const styles= StyleSheet.create({
     marginTop: 5,
     marginVertical: 5,
     marginBottom: 15,
+    color:'black',
+  },
+
+  image:{
+    marginTop:20,
+    width: '100%',
+    height: 300,
+    borderRadius: 20
+  },
+
+  saveBtn:{
+    backgroundColor:'#6b92ff',
+    display:'flex',
+    flexDirection:'row',
+    justifyContent:'space-around',
+    width:150,
+    padding:3,
+    height:40,
+    borderRadius:100,
+    alignItems:'center'
+
   }
 })
